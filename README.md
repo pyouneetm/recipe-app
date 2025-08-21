@@ -15,19 +15,16 @@ A modern, responsive web application that generates cooking recipes on demand us
 
 To run this project locally, follow these steps:
 
-1.  **Clone the repository:**
+
+1.  **Navigate to the project directory:**
     ```bash
-    git clone [https://github.com/YOUR-USERNAME/YOUR-REPOSITORY-NAME.git](https://github.com/YOUR-USERNAME/YOUR-REPOSITORY-NAME.git)
+    cd Recipe App
     ```
-2.  **Navigate to the project directory:**
-    ```bash
-    cd YOUR-REPOSITORY-NAME
-    ```
-3.  **Install the dependencies:**
+2.  **Install the dependencies:**
     ```bash
     npm install
     ```
-4.  **Run the development server:**
+3.  **Run the development server:**
     ```bash
     npm run dev
     ```
