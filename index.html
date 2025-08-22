@@ -103,39 +103,61 @@
                     }
                 }
             };
-            // The API key is provided automatically by the environment at runtime.
+
             const apiKey = ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-            try {
-                const response = await fetch(apiUrl, {
+            const maxRetries = 3;
+            let currentRetry = 0;
+
+            const callApiWithRetry = async () => {
+              while (currentRetry < maxRetries) {
+                try {
+                  const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
-                });
+                  });
 
-                if (!response.ok) {
+                  if (response.status === 429) { // Too Many Requests
+                    console.warn(`Rate limited. Retrying in ${Math.pow(2, currentRetry)} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetry) * 1000));
+                    currentRetry++;
+                    continue;
+                  }
+
+                  if (!response.ok) {
                     throw new Error(`API request failed with status ${response.status}`);
+                  }
+                  
+                  const result = await response.json();
+                  
+                  if (result.candidates && result.candidates.length > 0 &&
+                      result.candidates[0].content && result.candidates[0].content.parts &&
+                      result.candidates[0].content.parts.length > 0) {
+                      const jsonText = result.candidates[0].content.parts[0].text;
+                      const parsedJson = JSON.parse(jsonText);
+                      setRecipe(parsedJson);
+                      setScreen('recipe');
+                      return; // Exit the function on success
+                  } else {
+                      throw new Error("Invalid response structure from the API.");
+                  }
+                } catch (err) {
+                  console.error("API Error:", err);
+                  // For the last retry, set an error message
+                  if (currentRetry === maxRetries - 1) {
+                    setError("Sorry, I couldn't generate a recipe for that. Please try another dish.");
+                  }
+                  currentRetry++;
                 }
+              }
+              // This is reached if all retries fail
+              setIsLoading(false);
+            };
 
-                const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const jsonText = result.candidates[0].content.parts[0].text;
-                    const parsedJson = JSON.parse(jsonText);
-                    setRecipe(parsedJson);
-                    setScreen('recipe');
-                } else {
-                    throw new Error("Invalid response structure from the API.");
-                }
-            } catch (err) {
-                console.error("API Error:", err);
-                setError("Sorry, I couldn't generate a recipe for that. Please try another dish.");
-            } finally {
-                setIsLoading(false);
-            }
+            callApiWithRetry();
+
           }, [dishName]);
 
           const resetApp = () => {
